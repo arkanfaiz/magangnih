@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "596744547412",
+    "firebase_url": "https://magangnih-38abe-default-rtdb.firebaseio.com",
+    "project_id": "magangnih-38abe",
+    "storage_bucket": "magangnih-38abe.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:596744547412:android:f5073d705662cb5567d1c1",
+        "android_client_info": {
+          "package_name": "com.example.magangnih"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDY5D30WSRZq_iEVvC9MY2e3Ye4700mJXE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
