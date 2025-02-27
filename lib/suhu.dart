@@ -85,47 +85,49 @@ class _SuhuPageState extends State<SuhuPage> {
       print('❌ Error fetching temperature: $e');
     }
   }
+Future<void> _saveTemperatureToFirebase() async {
+  if (_isSaving || _averageTemperature == 0.0) {
+    print("⚠️ Data tidak valid atau sedang dalam proses penyimpanan.");
+    return;
+  }
 
-  Future<void> _saveTemperatureToFirebase() async {
-    if (_isSaving || _averageTemperature == 0.0) {
-      print("⚠️ Data tidak valid atau sedang dalam proses penyimpanan.");
+  _isSaving = true;
+  try {
+    final now = DateTime.now();
+    final timestamp = now.millisecondsSinceEpoch;
+    
+    // Gunakan format waktu dari state yang diperbarui secara real-time
+    final timeKey = _time.substring(0, 5); // Format HH:mm
+
+    // Cek apakah data dengan timestamp ini sudah ada di Firebase
+    final snapshot = await _database.child('temperature_logs')
+        .orderByChild('time')
+        .equalTo(timeKey)
+        .once();
+
+    if (snapshot.snapshot.exists) {
+      print("⚠️ Data dengan waktu $timeKey sudah ada.");
       return;
     }
 
-    _isSaving = true;
-    try {
-      final now = DateTime.now();
-      final timestamp = now.toUtc().millisecondsSinceEpoch;
-      final timeKey = "${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}";
+    final newDataRef = _database.child('temperature_logs').push();
+    await newDataRef.set({
+      'temperature': _averageTemperature,
+      'humidity': _humidity,
+      'day': _day,
+      'date': _date,
+      'time': _time, // Gunakan waktu lengkap
+      'timestamp': timestamp, // Simpan timestamp lengkap
+    });
 
-      // Cek apakah data sudah ada di Firebase
-      final snapshot = await _database.child('temperature_logs')
-          .orderByChild('time')
-          .equalTo(timeKey)
-          .once();
-
-      if (snapshot.snapshot.exists) {
-        print("⚠️ Data dengan waktu ini sudah ada.");
-        return;
-      }
-
-      final newDataRef = _database.child('temperature_logs').push();
-      await newDataRef.set({
-        'temperature': _averageTemperature,
-        'humidity': _humidity,
-        'day': _day,
-        'date': _date,
-        'time': timeKey,
-        'timestamp': timestamp,
-      });
-
-      print("✅ Data suhu berhasil disimpan: $_averageTemperature°C");
-    } catch (e) {
-      print("❌ Gagal menyimpan ke Firebase: $e");
-    } finally {
-      _isSaving = false;
-    }
+    print("✅ Data suhu berhasil disimpan: $_averageTemperature°C pada $_time");
+  } catch (e) {
+    print("❌ Gagal menyimpan ke Firebase: $e");
+  } finally {
+    _isSaving = false;
   }
+}
+
 
   void _updateDateTime() {
     final now = DateTime.now();
@@ -165,20 +167,23 @@ class _SuhuPageState extends State<SuhuPage> {
             ),
             SizedBox(height: 20),
             Expanded(
-              child: ListView.builder(
-                itemCount: _temperatureList.length,
-                itemBuilder: (context, index) {
-                  return Card(
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-                    elevation: 5,
-                    child: ListTile(
-                      title: Text("Suhu: ${_temperatureList[index]['suhu']}°C"),
-                      subtitle: Text("Kelembaban: ${_temperatureList[index]['kelembaban']}%\nWaktu: ${_temperatureList[index]['waktu']}"),
-                    ),
-                  );
-                },
-              ),
-            ),
+  child: ListView.builder(
+    itemCount: _temperatureList.length,
+    itemBuilder: (context, index) {
+      return Card(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+        elevation: 5,
+        child: ListTile(
+          title: Text("${index + 1}. Suhu: ${_temperatureList[index]['suhu']}°C"),
+          subtitle: Text(
+            "Kelembaban: ${_temperatureList[index]['kelembaban']}%\nWaktu: ${_temperatureList[index]['waktu']}",
+          ),
+        ),
+      );
+    },
+  ),
+),
+
           ],
         ),
       ),
