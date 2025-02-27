@@ -14,7 +14,7 @@ class _LaporanPageState extends State<LaporanPage> {
   List<Map<dynamic, dynamic>> _temperatureData = [];
   List<String> _keys = [];
   int _currentPage = 0;
-  final int _itemsPerPage = 10;
+  final int _itemsPerPage = 5;
   late Stream<DatabaseEvent> _dataStream;
   late Timer _timer; // Declare a Timer variable to handle the periodic data reload
 

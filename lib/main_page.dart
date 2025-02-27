@@ -118,7 +118,7 @@ class _MainPageState extends State<MainPage> {
                 context,
                 icon: Icons.thermostat,
                 label: "Suhu",
-                page: suhupage(),
+                page: SuhuPage(),
               ),
               buildMenuButton(
                 context,

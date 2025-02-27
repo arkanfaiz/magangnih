@@ -50,8 +50,9 @@ class MyApp extends StatelessWidget {
       ),
       initialRoute: '/', // Set route awal
       routes: {
-        '/': (context) => LoginPage(), // Halaman login
-        '/main': (context) => MainPage(), // Halaman utama
+                '/': (context) => MainPage(), // Halaman utama
+        '/main': (context) => LoginPage(), // Halaman login
+
       },
       debugShowCheckedModeBanner: false, // Nonaktifkan banner debug
     );
