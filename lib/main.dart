@@ -21,10 +21,10 @@ void main() async {
   );
 
   // Inisialisasi Workmanager
-  Workmanager().initialize(
-    callbackDispatcher, // Fungsi callback untuk tugas latar belakang
-    isInDebugMode: true, // Set false untuk production
-  );
+  // Workmanager().initialize(
+  //   callbackDispatcher, // Fungsi callback untuk tugas latar belakang
+  //   isInDebugMode: true, // Set false untuk production
+  // );
 
   // Daftarkan tugas periodik
   Workmanager().registerPeriodicTask(

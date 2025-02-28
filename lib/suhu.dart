@@ -21,21 +21,18 @@ class _SuhuPageState extends State<SuhuPage> {
   final _database = FirebaseDatabase.instance.ref();
   bool _isSaving = false;
   Timer? _refreshTimer;
-  Timer? _saveTimer; // New timer for saving data periodically
+  Timer? _saveTimer; 
 
   @override
   void initState() {
     super.initState();
     _updateDateTime();
-    _fetchTemperatureForDisplay();
+    _UpdatefetchTemperature();
 
-    // Auto-refresh data every 30 seconds
-    _refreshTimer = Timer.periodic(Duration(seconds: 30), (Timer t) {
-      _fetchTemperatureForDisplay();
+    _refreshTimer = Timer.periodic(Duration(seconds: 60), (Timer t) {
+      _UpdatefetchTemperature();
     });
 
-
-    // Update time every second
     Timer.periodic(Duration(seconds: 1), (Timer t) {
       _updateDateTime();
     });
@@ -44,11 +41,11 @@ class _SuhuPageState extends State<SuhuPage> {
   @override
   void dispose() {
     _refreshTimer?.cancel();
-    _saveTimer?.cancel(); // Cancel the save timer
+    _saveTimer?.cancel(); 
     super.dispose();
   }
 
-  Future<void> _fetchTemperatureForDisplay() async {
+  Future<void> _UpdatefetchTemperature() async {
     final url = 'http://172.17.81.224/sensor_suhu/api/suhu.php';
     try {
       final response = await http.get(Uri.parse(url));
@@ -63,18 +60,15 @@ class _SuhuPageState extends State<SuhuPage> {
                 })
             .toList();
 
-        // Sort the data by 'id' or 'waktu' (descending order)
         suhuList.sort((a, b) {
-          return b['id']!.compareTo(a['id']!); // Sorting by ID in descending order
+          return b['id']!.compareTo(a['id']!); 
         });
 
-        // Take only the latest 50 entries
         suhuList = suhuList.take(50).toList();
 
         double totalSuhu = suhuList.fold(0.0, (sum, item) => sum + double.parse(item['suhu']!));
         double averageSuhu = suhuList.isNotEmpty ? totalSuhu / suhuList.length : 0.0;
 
-        // Update state only if the average temperature has changed
         if (_averageTemperature != averageSuhu) {
           setState(() {
             _temperatureList = suhuList;
@@ -84,7 +78,6 @@ class _SuhuPageState extends State<SuhuPage> {
             }
           });
 
-          // Save to Firebase whenever the average temperature changes
           _saveTemperatureToFirebase();
         }
 
@@ -99,48 +92,44 @@ class _SuhuPageState extends State<SuhuPage> {
 
   Future<void> _saveTemperatureToFirebase() async {
     if (_isSaving || _averageTemperature == 0.0) {
-      print("⚠️ Data tidak valid atau sedang dalam proses penyimpanan.");
+      print("⚠ Data tidak valid atau sedang dalam proses penyimpanan.");
       return;
     }
 
- _isSaving = true;
-try {
-  final now = DateTime.now();
-  
-  // Round the minute to the nearest 2-minute interval
-  final int roundedMinute = (now.minute ~/ 2) * 2; // This gives us a 2-minute rounded value
-  final timeKey = "${now.hour.toString().padLeft(2, '0')}:${roundedMinute.toString().padLeft(2, '0')}"; // Use rounded minute
+    _isSaving = true;
+    try {
+      final now = DateTime.now();
+      final int roundedMinute = (now.minute ~/ 2) * 2;
+      final timeKey = "${now.hour.toString().padLeft(2, '0')}:${roundedMinute.toString().padLeft(2, '0')}";
 
-  final timestamp = now.toUtc().millisecondsSinceEpoch;
+      final timestamp = now.toUtc().millisecondsSinceEpoch;
 
-  // Check if the data for this time already exists in Firebase
-  final snapshot = await _database.child('temperature_logs')
-      .orderByChild('time')
-      .equalTo(timeKey)
-      .once();
+      final snapshot = await _database.child('temperature_logs')
+          .orderByChild('time')
+          .equalTo(timeKey)
+          .once();
 
-  if (snapshot.snapshot.exists) {
-    print("⚠️ Data dengan waktu ini sudah ada.");
-    return;
-  }
+      if (snapshot.snapshot.exists) {
+        print("⚠ Data dengan waktu ini sudah ada.");
+        return;
+      }
 
-  final newDataRef = _database.child('temperature_logs').push();
-  await newDataRef.set({
-    'temperature': _averageTemperature,
-    'humidity': _humidity,
-    'day': _day,
-    'date': _date,
-    'time': timeKey,
-    'timestamp': timestamp,
-  });
+      final newDataRef = _database.child('temperature_logs').push();
+      await newDataRef.set({
+        'temperature': _averageTemperature,
+        'humidity': _humidity,
+        'day': _day,
+        'date': _date,
+        'time': timeKey,
+        'timestamp': timestamp,
+      });
 
-  print("✅ Data Rata-Rata suhu berhasil disimpan: $_averageTemperature°C");
-} catch (e) {
-  print("❌ Gagal menyimpan ke Firebase: $e");
-} finally {
-  _isSaving = false;
-}
-
+      print("✅ Data Rata-Rata suhu berhasil disimpan: $_averageTemperature°C");
+    } catch (e) {
+      print("❌ Gagal menyimpan ke Firebase: $e");
+    } finally {
+      _isSaving = false;
+    }
   }
 
   void _updateDateTime() {
@@ -167,12 +156,28 @@ try {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Center(
-              child: Text(
-                "Average Temperature: ${_averageTemperature.toStringAsFixed(2)}°C",
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.red),
+              child: Card(
+                elevation: 5,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                color: Colors.lightBlue[50],
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    children: [
+                      Text(
+                        "Average Temperature",
+                        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black87),
+                      ),
+                      Text(
+                        "${_averageTemperature.toStringAsFixed(2)}°C",
+                        style: TextStyle(fontSize: 40, fontWeight: FontWeight.bold, color: Colors.redAccent),
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ),
-            SizedBox(height: 10),
+            SizedBox(height: 20),
             Expanded(
               child: ListView.builder(
                 itemCount: _temperatureList.length,
@@ -180,9 +185,15 @@ try {
                   return Card(
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                     elevation: 5,
+                    margin: EdgeInsets.symmetric(vertical: 8),
                     child: ListTile(
-                      title: Text(" ${index + 1}: Suhu: ${_temperatureList[index]['suhu']}°C"),  
-                      subtitle: Text("Kelembaban: ${_temperatureList[index]['kelembaban']}%\nWaktu: ${_temperatureList[index]['waktu']}"),
+                      title: Text(" ${index + 1}: Suhu:${_temperatureList[index]['suhu']}°C",
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.red),
+                      ),
+                      subtitle: Text(
+                        "Kelembaban: ${_temperatureList[index]['kelembaban']}%\nWaktu: ${_temperatureList[index]['waktu']}",
+                        style: TextStyle(fontSize: 14, color: Colors.blueGrey),
+                      ),
                     ),
                   );
                 },
