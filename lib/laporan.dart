@@ -5,7 +5,7 @@ import 'dart:async'; // Import dart:async for Timer
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
-import 'package:intl/intl.dart'; // Import for date formatting
+
 
 class LaporanPage extends StatefulWidget {
   const LaporanPage({super.key});
@@ -216,34 +216,39 @@ class _LaporanPageState extends State<LaporanPage> {
     _loadTemperatureData();
     _startAutoReload(); // Start the automatic data reload every 10 seconds
   }
-
-  void _loadTemperatureData() {
-  _dataStream.listen((event) {
-    final snapshot = event.snapshot;
+Future<void> _loadTemperatureData() async {
+  try {
+    DataSnapshot snapshot = await _database.child('temperature_logs').get();
     if (snapshot.exists && snapshot.value is Map) {
       setState(() {
-        _keys = (snapshot.value as Map).keys.cast<String>().toList();
         _temperatureData = List.from((snapshot.value as Map).values);
+        _keys = (snapshot.value as Map).keys.cast<String>().toList();
 
-        // Sort by date and time
+        // Urutan hari dalam seminggu
+        List<String> daysOrder = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu"];
+
+        // Sorting berdasarkan hari dalam seminggu, lalu tanggal, dan jam
         _temperatureData.sort((a, b) {
-          // First sort by date
+          int dayComparison = daysOrder.indexOf(b['day']).compareTo(daysOrder.indexOf(a['day']));
+          if (dayComparison != 0) return dayComparison;
+          
           int dateCompare = _compareDates(a['date'], b['date']);
           if (dateCompare != 0) return dateCompare;
 
-          // Then by time
-          return _convertTimeToComparable(a['time'])
-              .compareTo(_convertTimeToComparable(b['time']));
+          return _convertTimeToComparable(a['time']).compareTo(_convertTimeToComparable(b['time']));
         });
 
-        // Organize data by day
+        // Organisasi data berdasarkan hari
         _organizeDataByDay();
 
-        // Check if we have data for 7 days and should create a report
+        // Cek jika perlu membuat laporan mingguan
         _checkForWeeklyReportGeneration();
 
-        int totalPages = (_temperatureData.length / _itemsPerPage).ceil();
-        _currentPage = totalPages > 0 ? totalPages - 1 : 0;
+        // Set halaman terakhir
+        if (_temperatureData.isNotEmpty) {
+          _currentPage = (_temperatureData.length / _itemsPerPage).ceil() - 1;
+          _currentPage = _currentPage < 0 ? 0 : _currentPage; // Pastikan tidak negatif
+        }
       });
     } else {
       setState(() {
@@ -252,22 +257,23 @@ class _LaporanPageState extends State<LaporanPage> {
         _currentPage = 0;
         _clearDailyData();
       });
+      print('No data found in Firebase');
     }
-  });
+  } catch (e) {
+    print('Error loading data: $e');
+  }
 }
 
-  void _organizeDataByDay() {
-    // Clear previous data
-    _clearDailyData();
-
-    // Organize data by day
-    for (var data in _temperatureData) {
-      String day = data['day'] ?? '';
-      if (_daysOfWeek.contains(day)) {
-        _dailyData[day]!.add(data);
-      }
+void _organizeDataByDay() {
+  _clearDailyData();
+  for (var data in _temperatureData) {
+    String day = data['day'] ?? '';
+    if (_daysOfWeek.contains(day)) {
+      _dailyData[day]!.add(data);
     }
   }
+}
+
 
   void _clearDailyData() {
     for (String day in _daysOfWeek) {
@@ -358,9 +364,9 @@ class _LaporanPageState extends State<LaporanPage> {
     }
   }
 
-  // Function to automatically reload data every 10 seconds
+
   void _startAutoReload() {
-  _timer = Timer.periodic(Duration(seconds: 2), (Timer t) {
+  _timer = Timer.periodic(Duration(seconds: 60), (Timer t) {
     _loadTemperatureData(); // Call _loadTemperatureData every 2 seconds for smoother scrolling
   });
 }
