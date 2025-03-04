@@ -35,6 +35,58 @@ class _LaporanPageState extends State<LaporanPage> {
     'Minggu': [],
   };
 
+// Add this method to your _LaporanPageState class
+List<FlSpot> _filterValidSpots(List<FlSpot> spots) {
+  if (spots.isEmpty) return spots;
+  
+  // Get the min and max X values from your actual data
+  final minX = spots.map((spot) => spot.x).reduce((a, b) => a < b ? a : b);
+  
+  // Only include spots that have valid X coordinates within the visible range
+  return spots.where((spot) => 
+    // Only include spots where x is greater than or equal to minX 
+    // This prevents points from being plotted too far left
+    spot.x >= minX &&
+    // Make sure all Y values are valid numbers
+    !spot.y.isNaN && 
+    !spot.y.isInfinite
+  ).toList();
+}
+
+  // Get minimum temperature value for a specific day
+double _getMinTemperature(String day) {
+  List<Map<dynamic, dynamic>> dayData = _dailyData[day] ?? [];
+  if (dayData.isEmpty) return 20; // Default minimum if no data
+  
+  double minTemp = double.infinity;
+  for (var data in dayData) {
+    double? temp = double.tryParse(data['temperature'].toString());
+    if (temp != null && temp < minTemp) {
+      minTemp = temp;
+    }
+  }
+  
+  // If no valid temperatures found, return default
+  return minTemp == double.infinity ? 20 : minTemp;
+}
+
+// Get maximum temperature value for a specific day
+double _getMaxTemperature(String day) {
+  List<Map<dynamic, dynamic>> dayData = _dailyData[day] ?? [];
+  if (dayData.isEmpty) return 30; // Default maximum if no data
+  
+  double maxTemp = double.negativeInfinity;
+  for (var data in dayData) {
+    double? temp = double.tryParse(data['temperature'].toString());
+    if (temp != null && temp > maxTemp) {
+      maxTemp = temp;
+    }
+  }
+  
+  // If no valid temperatures found, return default
+  return maxTemp == double.negativeInfinity ? 30 : maxTemp;
+}
+
   // Days of the week in order
   final List<String> _daysOfWeek = [
     'Senin',
@@ -49,132 +101,231 @@ class _LaporanPageState extends State<LaporanPage> {
   // Keep track of whether we've had 7 days of data to generate a weekly report
   bool _weeklyDataComplete = false;
 
-  Future<void> _generateWeeklyPDF() async {
-    final pdf = pw.Document();
+Future<void> _generateWeeklyPDF() async {
+  final pdf = pw.Document();
 
-    // Add title page
-    pdf.addPage(
-      pw.Page(
-        build: (pw.Context context) {
-          return pw.Center(
-            child: pw.Column(
-              mainAxisAlignment: pw.MainAxisAlignment.center,
-              children: [
-                pw.Text('Laporan Mingguan Suhu dan Kelembaban',
-                    style: pw.TextStyle(
-                        fontSize: 24, fontWeight: pw.FontWeight.bold)),
-                pw.SizedBox(height: 20),
-                pw.Text(
-                    'Periode: ${DateTime.now().subtract(const Duration(days: 7)).toString().substring(0, 10)} - ${DateTime.now().toString().substring(0, 10)}',
-                    style: pw.TextStyle(fontSize: 16)),
-              ],
-            ),
-          );
-        },
-      ),
-    );
-
-    // Add data tables for each day
-    for (String day in _daysOfWeek) {
-      List<Map<dynamic, dynamic>> dayData = _dailyData[day] ?? [];
-
-      if (dayData.isNotEmpty) {
-        pdf.addPage(
-          pw.Page(
-            build: (pw.Context context) {
-              return pw.Column(
-                crossAxisAlignment: pw.CrossAxisAlignment.start,
-                children: [
-                  pw.Text('Data $day',
-                      style: pw.TextStyle(
-                          fontSize: 20, fontWeight: pw.FontWeight.bold)),
-                  pw.SizedBox(height: 15),
-                  pw.Table.fromTextArray(
-                    context: context,
-                    headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold),
-                    headerDecoration:
-                        pw.BoxDecoration(color: PdfColors.grey300),
-                    data: <List<String>>[
-                      <String>[
-                        'No',
-                        'Suhu (°C)',
-                        'Kelembaban (%)',
-                        'Tanggal',
-                        'Jam'
-                      ],
-                      ...List.generate(dayData.length, (index) {
-                        Map data = dayData[index];
-                        return [
-                          '${index + 1}',
-                          '${data['temperature']}',
-                          '${data['humidity']}',
-                          '${data['date']}',
-                          '${data['time']}',
-                        ];
-                      }),
-                    ],
-                  ),
-                  pw.SizedBox(height: 20),
-                  // Could add simple chart representation here if needed
-                  pw.Text('Total rekaman data: ${dayData.length}'),
-                  if (dayData.isNotEmpty)
-                    pw.Text(
-                        'Rata-rata suhu: ${_calculateAverageTemp(dayData)}°C'),
-                  if (dayData.isNotEmpty)
-                    pw.Text(
-                        'Rata-rata kelembaban: ${_calculateAverageHumidity(dayData)}%'),
-                ],
-              );
-            },
+  // Add title page
+  pdf.addPage(
+    pw.Page(
+      build: (pw.Context context) {
+        return pw.Center(
+          child: pw.Column(
+            mainAxisAlignment: pw.MainAxisAlignment.center,
+            children: [
+              pw.Text('Laporan Mingguan Suhu dan Kelembaban',
+                  style: pw.TextStyle(
+                      fontSize: 24, fontWeight: pw.FontWeight.bold)),
+              pw.SizedBox(height: 20),
+              pw.Text(
+                  'Periode: ${DateTime.now().subtract(const Duration(days: 7)).toString().substring(0, 10)} - ${DateTime.now().toString().substring(0, 10)}',
+                  style: pw.TextStyle(fontSize: 16)),
+            ],
           ),
         );
+      },
+    ),
+  );
+
+  // Add data tables for each day with the requested information
+  for (String day in _daysOfWeek) {
+    List<Map<dynamic, dynamic>> dayData = _dailyData[day] ?? [];
+
+    if (dayData.isNotEmpty) {
+      // Calculate min, max, and avg temperature for this day
+      double minTemp = double.infinity;
+      double maxTemp = double.negativeInfinity;
+      double sumTemp = 0;
+      int tempCount = 0;
+      
+      // Calculate average humidity
+      double sumHumidity = 0;
+      int humidityCount = 0;
+      
+      for (var data in dayData) {
+        // Process temperature data
+        if (data['temperature'] != null && data['temperature'].toString().isNotEmpty) {
+          double? temp = double.tryParse(data['temperature'].toString());
+          if (temp != null) {
+            minTemp = temp < minTemp ? temp : minTemp;
+            maxTemp = temp > maxTemp ? temp : maxTemp;
+            sumTemp += temp;
+            tempCount++;
+          }
+        }
+        
+        // Process humidity data
+        if (data['humidity'] != null && data['humidity'].toString().isNotEmpty) {
+          double? humidity = double.tryParse(data['humidity'].toString());
+          if (humidity != null) {
+            sumHumidity += humidity;
+            humidityCount++;
+          }
+        }
       }
-    }
+      
+      // Calculate averages
+      double avgTemp = tempCount > 0 ? sumTemp / tempCount : 0;
+      double avgHumidity = humidityCount > 0 ? sumHumidity / humidityCount : 0;
+      
+      // Format for display
+      String avgTempFormatted = avgTemp.toStringAsFixed(1);
+      String minTempFormatted = minTemp == double.infinity ? "N/A" : minTemp.toStringAsFixed(1);
+      String maxTempFormatted = maxTemp == double.negativeInfinity ? "N/A" : maxTemp.toStringAsFixed(1);
+      String avgHumidityFormatted = avgHumidity.toStringAsFixed(1);
 
-    // Add summary page
-    pdf.addPage(
-      pw.Page(
-        build: (pw.Context context) {
-          return pw.Column(
-            crossAxisAlignment: pw.CrossAxisAlignment.start,
-            children: [
-              pw.Text('Ringkasan Mingguan',
-                  style: pw.TextStyle(
-                      fontSize: 20, fontWeight: pw.FontWeight.bold)),
-              pw.SizedBox(height: 15),
-              pw.Table.fromTextArray(
-                context: context,
-                headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold),
-                headerDecoration: pw.BoxDecoration(color: PdfColors.grey300),
-                data: <List<String>>[
-                  <String>[
-                    'Hari',
-                    'Jumlah Data',
-                    'Rata-rata Suhu (°C)',
-                    'Rata-rata Kelembaban (%)'
+      pdf.addPage(
+        pw.Page(
+          build: (pw.Context context) {
+            return pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                pw.Text('Data $day',
+                    style: pw.TextStyle(
+                        fontSize: 20, fontWeight: pw.FontWeight.bold)),
+                pw.SizedBox(height: 15),
+                
+                // Summary information section
+                pw.Container(
+                  padding: const pw.EdgeInsets.all(10),
+                  decoration: pw.BoxDecoration(
+                    border: pw.Border.all(color: PdfColors.grey300),
+                    borderRadius: const pw.BorderRadius.all(pw.Radius.circular(5)),
+                  ),
+                  child: pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                    children: [
+                      pw.Text('Ringkasan Harian:', 
+                          style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                      pw.SizedBox(height: 5),
+                      pw.Row(
+                        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                        children: [
+                          pw.Column(
+                            crossAxisAlignment: pw.CrossAxisAlignment.start,
+                            children: [
+                              pw.Text('Suhu Minimal: $minTempFormatted°C'),
+                              pw.Text('Suhu Maksimal: $maxTempFormatted°C'),
+                            ],
+                          ),
+                          pw.Column(
+                            crossAxisAlignment: pw.CrossAxisAlignment.start,
+                            children: [
+                              pw.Text('Suhu Rata-rata: $avgTempFormatted°C'),
+                              pw.Text('Kelembapan Rata-rata: $avgHumidityFormatted%'),
+                            ],
+                          ),
+                        ],
+                      ),
+                      pw.SizedBox(height: 5),
+                      pw.Text('Total rekaman data: ${dayData.length}'),
+                    ],
+                  ),
+                ),
+                
+                pw.SizedBox(height: 15),
+                
+                // Detailed data table
+                pw.Text('Detail Data:',
+                    style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                pw.SizedBox(height: 5),
+                pw.Table.fromTextArray(
+                  context: context,
+                  headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                  headerDecoration:
+                      pw.BoxDecoration(color: PdfColors.grey300),
+                  data: <List<String>>[
+                    <String>[
+                      'No',
+                      'Tanggal',
+                      'Jam',
+                      'Suhu (°C)',
+                      'Kelembapan (%)'
+                    ],
+                    ...List.generate(dayData.length, (index) {
+                      Map data = dayData[index];
+                      return [
+                        '${index + 1}',
+                        '${data['date']}',
+                        '${data['time']}',
+                        '${data['temperature']}',
+                        '${data['humidity']}',
+                      ];
+                    }),
                   ],
-                  ..._daysOfWeek.map((day) {
-                    List<Map<dynamic, dynamic>> dayData = _dailyData[day] ?? [];
-                    return [
-                      day,
-                      '${dayData.length}',
-                      dayData.isEmpty ? '-' : _calculateAverageTemp(dayData),
-                      dayData.isEmpty
-                          ? '-'
-                          : _calculateAverageHumidity(dayData),
-                    ];
-                  }).toList(),
-                ],
-              ),
-            ],
-          );
-        },
-      ),
-    );
-
-    await Printing.layoutPdf(
-        onLayout: (PdfPageFormat format) async => pdf.save());
+                ),
+              ],
+            );
+          },
+        ),
+      );
+    }
   }
+
+  // Add summary page
+  pdf.addPage(
+    pw.Page(
+      build: (pw.Context context) {
+        return pw.Column(
+          crossAxisAlignment: pw.CrossAxisAlignment.start,
+          children: [
+            pw.Text('Ringkasan Mingguan',
+                style: pw.TextStyle(
+                    fontSize: 20, fontWeight: pw.FontWeight.bold)),
+            pw.SizedBox(height: 15),
+            pw.Table.fromTextArray(
+              context: context,
+              headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+              headerDecoration: pw.BoxDecoration(color: PdfColors.grey300),
+              data: <List<String>>[
+                <String>[
+                  'Hari',
+                  'Jumlah Data',
+                  'Suhu Min (°C)',
+                  'Suhu Max (°C)',
+                  'Suhu Rata-rata (°C)',
+                  'Kelembapan (%)'
+                ],
+                ..._daysOfWeek.map((day) {
+                  List<Map<dynamic, dynamic>> dayData = _dailyData[day] ?? [];
+                  
+                  // Calculate min, max for this day
+                  double minTemp = double.infinity;
+                  double maxTemp = double.negativeInfinity;
+                  
+                  for (var data in dayData) {
+                    if (data['temperature'] != null && data['temperature'].toString().isNotEmpty) {
+                      double? temp = double.tryParse(data['temperature'].toString());
+                      if (temp != null) {
+                        minTemp = temp < minTemp ? temp : minTemp;
+                        maxTemp = temp > maxTemp ? temp : maxTemp;
+                      }
+                    }
+                  }
+                  
+                  // Format for display
+                  String minTempFormatted = minTemp == double.infinity ? "-" : minTemp.toStringAsFixed(1);
+                  String maxTempFormatted = maxTemp == double.negativeInfinity ? "-" : maxTemp.toStringAsFixed(1);
+                  
+                  return [
+                    day,
+                    '${dayData.length}',
+                    minTempFormatted,
+                    maxTempFormatted,
+                    dayData.isEmpty ? '-' : _calculateAverageTemp(dayData),
+                    dayData.isEmpty ? '-' : _calculateAverageHumidity(dayData),
+                  ];
+                }).toList(),
+              ],
+            ),
+          ],
+        );
+      },
+    ),
+  );
+
+  await Printing.layoutPdf(
+      onLayout: (PdfPageFormat format) async => pdf.save());
+}
 
   // Calculate average temperature for a list of data points
   String _calculateAverageTemp(List<Map<dynamic, dynamic>> data) {
@@ -216,6 +367,7 @@ class _LaporanPageState extends State<LaporanPage> {
     _loadTemperatureData();
     _startAutoReload(); // Start the automatic data reload every 10 seconds
   }
+  
 Future<void> _loadTemperatureData() async {
   try {
     DataSnapshot snapshot = await _database.child('temperature_logs').get();
@@ -224,17 +376,20 @@ Future<void> _loadTemperatureData() async {
         _temperatureData = List.from((snapshot.value as Map).values);
         _keys = (snapshot.value as Map).keys.cast<String>().toList();
 
-        // Urutan hari dalam seminggu
-        List<String> daysOrder = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu"];
+        // Urutan hari dimulai dari Jumat
+        List<String> daysOrder = ["Jumat", "Sabtu", "Minggu", "Senin", "Selasa", "Rabu", "Kamis"];
 
-        // Sorting berdasarkan hari dalam seminggu, lalu tanggal, dan jam
+        // Sorting berdasarkan hari dalam seminggu (descending), lalu tanggal, dan jam
         _temperatureData.sort((a, b) {
-          int dayComparison = daysOrder.indexOf(b['day']).compareTo(daysOrder.indexOf(a['day']));
+          // Sort by the day of the week (based on the new order starting from Friday)
+          int dayComparison = daysOrder.indexOf(a['day']).compareTo(daysOrder.indexOf(b['day']));
           if (dayComparison != 0) return dayComparison;
-          
+
+          // Then by date (ascending)
           int dateCompare = _compareDates(a['date'], b['date']);
           if (dateCompare != 0) return dateCompare;
 
+          // Finally by time (ascending)
           return _convertTimeToComparable(a['time']).compareTo(_convertTimeToComparable(b['time']));
         });
 
@@ -273,6 +428,7 @@ void _organizeDataByDay() {
     }
   }
 }
+
 
 
   void _clearDailyData() {
@@ -452,6 +608,7 @@ void _organizeDataByDay() {
   }
 
   // Generate spots for line chart for a specific day
+// Replace or update your existing _generateDayTemperatureSpots method
 List<FlSpot> _generateDayTemperatureSpots(String day) {
   List<FlSpot> spots = [];
   List<Map<dynamic, dynamic>> dayData = _dailyData[day] ?? [];
@@ -462,15 +619,36 @@ List<FlSpot> _generateDayTemperatureSpots(String day) {
   dayData.sort((a, b) => _convertTimeToComparable(a['time'])
       .compareTo(_convertTimeToComparable(b['time'])));
 
+  // Find the earliest and latest time in the data
+  double earliestTime = double.infinity;
+  double latestTime = 0;
+  
+  // First pass to find time boundaries
   for (int i = 0; i < dayData.length; i++) {
-    // Convert time to hours as decimal for x-axis (e.g., "14:30" becomes 14.5)
     String time = dayData[i]['time'] ?? "00:00";
     List<String> timeParts = time.split(':');
-    double hourDecimal =
-        double.parse(timeParts[0]) + (double.parse(timeParts[1]) / 60);
+    double hourDecimal = double.parse(timeParts[0]) + (double.parse(timeParts[1]) / 60);
+    
+    if (hourDecimal < earliestTime) {
+      earliestTime = hourDecimal;
+    }
+    if (hourDecimal > latestTime) {
+      latestTime = hourDecimal;
+    }
+  }
+  
+  // Set a reasonable minimum x value to prevent leftward extension
+  // This ensures we don't plot points too far left
+  double minAllowedX = earliestTime;
+  
+  // Second pass to create spots within the valid range
+  for (int i = 0; i < dayData.length; i++) {
+    String time = dayData[i]['time'] ?? "00:00";
+    List<String> timeParts = time.split(':');
+    double hourDecimal = double.parse(timeParts[0]) + (double.parse(timeParts[1]) / 60);
 
-    // Make sure x value is within 0-24 range
-    if (hourDecimal >= 0 && hourDecimal < 24) {
+    // Only add points that are within our valid range
+    if (hourDecimal >= minAllowedX && hourDecimal <= 24) {
       double? y = double.tryParse(dayData[i]['temperature'].toString());
       if (y != null) {
         spots.add(FlSpot(hourDecimal, y));
@@ -482,6 +660,7 @@ List<FlSpot> _generateDayTemperatureSpots(String day) {
 }
 
 // Get min and max X values for current day's data
+// Replace or update your existing _getDayDataRange method
 (double, double) _getDayDataRange(String day) {
   List<Map<dynamic, dynamic>> dayData = _dailyData[day] ?? [];
   
@@ -490,20 +669,32 @@ List<FlSpot> _generateDayTemperatureSpots(String day) {
   // Default visible range (4 hours window)
   double visibleRange = 4.0;
   
-  // Get the latest time entry
-  dayData.sort((a, b) => _convertTimeToComparable(b['time'])
-      .compareTo(_convertTimeToComparable(a['time'])));
+  // Get earliest and latest time entries
+  dayData.sort((a, b) => _convertTimeToComparable(a['time'])
+      .compareTo(_convertTimeToComparable(b['time'])));
   
-  String latestTime = dayData.first['time'] ?? "00:00";
-  List<String> timeParts = latestTime.split(':');
-  double latestHour = double.parse(timeParts[0]) + (double.parse(timeParts[1]) / 60);
+  String earliestTime = dayData.first['time'] ?? "00:00";
+  String latestTime = dayData.last['time'] ?? "00:00";
   
-  // Calculate min and max X values to make chart automatically scroll
-  double maxX = latestHour + 1; // Add 1 hour padding to the right
-  double minX = maxX - visibleRange; // Show 4 hours window
+  List<String> earliestParts = earliestTime.split(':');
+  List<String> latestParts = latestTime.split(':');
   
-  // Ensure min and max are within valid range
+  double earliestHour = double.parse(earliestParts[0]) + (double.parse(earliestParts[1]) / 60);
+  double latestHour = double.parse(latestParts[0]) + (double.parse(latestParts[1]) / 60);
+  
+  // Calculate min and max X values to show all data plus some padding
+  double minX = earliestHour - 0.2; // Small padding to the left
+  double maxX = latestHour + 0.8; // More padding to the right
+  
+  // Ensure min is never negative
   if (minX < 0) minX = 0;
+  
+  // Ensure we have at least a 2-hour window for better visualization
+  if (maxX - minX < 2) {
+    maxX = minX + 2;
+  }
+  
+  // Ensure max is not beyond 24
   if (maxX > 24) maxX = 24;
   
   return (minX, maxX);
@@ -794,100 +985,154 @@ List<FlSpot> _generateDayTemperatureSpots(String day) {
                             }
 
                             return Container(
-                              margin: const EdgeInsets.only(bottom: 20),
-                              height: 220,
-                              child: Column(
-                                children: [
-                                  Padding(
-                                    padding:
-                                        const EdgeInsets.symmetric(vertical: 4),
-                                    child: Text(
-                                      day,
-                                      style: const TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.blueAccent),
-                                    ),
-                                  ),
-                                  Expanded(
-  child: LineChart(
-    LineChartData(
-      gridData: FlGridData(show: true),
-      titlesData: FlTitlesData(
-        bottomTitles: AxisTitles(
-          sideTitles: SideTitles(
-            showTitles: true,
-            getTitlesWidget: (value, meta) {
-              // Only show a few hour markers
-              if (value % 1 == 0 && value <= 24) {
+  margin: const EdgeInsets.only(bottom: 20),
+  height: 220,
+  decoration: BoxDecoration(
+    color: Colors.white,
+    borderRadius: BorderRadius.circular(8),
+    border: Border.all(color: Colors.grey[200]!),
+  ),
+  child: Column(
+    children: [
+      Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Text(
+          day,
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            color: Colors.blueAccent,
+          ),
+        ),
+      ),// Replace the LineChart widget in your code with this implementation
+Expanded(
+  child: Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 12.0),
+    child: LineChart(
+      LineChartData(
+        clipData: FlClipData.all(), // Add clipping to prevent chart elements from extending outside boundaries
+        gridData: FlGridData(
+          show: true,
+          drawHorizontalLine: true,
+          drawVerticalLine: true,
+          horizontalInterval: 1,
+          verticalInterval: 1,
+          checkToShowHorizontalLine: (value) => value % 1 == 0,
+          checkToShowVerticalLine: (value) => value % 2 == 0,
+        ),
+        titlesData: FlTitlesData(
+          bottomTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              getTitlesWidget: (value, meta) {
+                if (value % 2 == 0 && value >= 0 && value <= 24) {
+                  return Padding(
+                    padding: const EdgeInsets.only(top: 5.0),
+                    child: Text(
+                      '${value.toInt()}:00',
+                      style: const TextStyle(
+                        fontSize: 10,
+                        color: Colors.black54,
+                      ),
+                    ),
+                  );
+                }
+                return const SizedBox.shrink();
+              },
+              reservedSize: 28,
+              interval: 2,
+            ),
+          ),
+          leftTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              getTitlesWidget: (value, meta) {
                 return Padding(
-                  padding: const EdgeInsets.only(top: 8.0),
-                  child: Text('${value.toInt()}:00'),
+                  padding: const EdgeInsets.only(right: 5.0),
+                  child: Text(
+                    '${value.toInt()}°',
+                    style: const TextStyle(
+                      fontSize: 10,
+                      color: Colors.black54,
+                    ),
+                    textAlign: TextAlign.right,
+                  ),
                 );
-              }
-              return const Text('');
+              },
+              reservedSize: 35,
+              interval: 5,
+            ),
+          ),
+          topTitles: AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
+          ),
+          rightTitles: AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
+          ),
+        ),
+        borderData: FlBorderData(
+          show: true,
+          border: Border.all(
+            color: Colors.grey.shade300,
+            width: 1,
+          ),
+        ),
+        // Ensure minX is actually the minimum found in the data, not a calculated window
+        // Modify this part in your _getDayDataRange method or use a fixed minX that's within your data
+        minX: _getDayDataRange(day).$1 > 0 ? _getDayDataRange(day).$1 : 0, // Add safety check
+        maxX: _getDayDataRange(day).$2,
+        minY: _getMinTemperature(day) - 1,
+        maxY: _getMaxTemperature(day) + 1,
+        lineTouchData: LineTouchData(
+          enabled: true,
+          touchTooltipData: LineTouchTooltipData(
+            tooltipBgColor: Colors.blueAccent.withOpacity(0.8),
+            getTooltipItems: (List<LineBarSpot> touchedSpots) {
+              return touchedSpots.map((LineBarSpot touchedSpot) {
+                int hour = touchedSpot.x.toInt();
+                int minute = ((touchedSpot.x - hour) * 60).round();
+                String timeStr = '$hour:${minute.toString().padLeft(2, '0')}';
+                
+                return LineTooltipItem(
+                  '${timeStr}\n${touchedSpot.y.toStringAsFixed(1)}°C',
+                  const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                );
+              }).toList();
             },
-            reservedSize: 30,
           ),
         ),
-        leftTitles: AxisTitles(
-          sideTitles: SideTitles(
-            showTitles: true,
-            getTitlesWidget: (value, meta) {
-              return Text('${value.toInt()}°C');
-            },
-            reservedSize: 40,
+        lineBarsData: [
+          LineChartBarData(
+            isCurved: true,
+            color: Colors.red,
+            barWidth: 2.5,
+            isStrokeCapRound: true,
+            preventCurveOverShooting: true, // Prevent curves from extending beyond data points
+            dotData: FlDotData(
+              show: true,
+              getDotPainter: (spot, percent, barData, index) {
+                return FlDotCirclePainter(
+                  radius: 3,
+                  color: Colors.red,
+                  strokeWidth: 1,
+                  strokeColor: Colors.white,
+                );
+              },
+            ),
+            belowBarData: BarAreaData(
+              show: true,
+              color: Colors.red.withOpacity(0.2),
+              cutOffY: _getMinTemperature(day) - 1,
+              applyCutOffY: true,
+            ),
+            spots: _filterValidSpots(_generateDayTemperatureSpots(day)), // Added filtering function
           ),
-        ),
-        topTitles: AxisTitles(
-          sideTitles: SideTitles(showTitles: false),
-        ),
-        rightTitles: AxisTitles(
-          sideTitles: SideTitles(showTitles: false),
-        ),
+        ],
       ),
-      borderData: FlBorderData(show: true),
-      // Get dynamic min and max X values
-      minX: _getDayDataRange(day).$1,
-      maxX: _getDayDataRange(day).$2,
-      // Add these options for better scrolling behavior
-      lineTouchData: LineTouchData(
-        enabled: true,
-        touchTooltipData: LineTouchTooltipData(
-          tooltipBgColor: Colors.blueAccent.withOpacity(0.8),
-          getTooltipItems: (List<LineBarSpot> touchedSpots) {
-            return touchedSpots.map((LineBarSpot touchedSpot) {
-              // Convert decimal hour back to time format
-              int hour = touchedSpot.x.toInt();
-              int minute = ((touchedSpot.x - hour) * 60).round();
-              String timeStr = '$hour:${minute.toString().padLeft(2, '0')}';
-              
-              return LineTooltipItem(
-                '${timeStr}\n${touchedSpot.y.toStringAsFixed(1)}°C',
-                const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-              );
-            }).toList();
-          },
-        ),
-      ),
-      lineBarsData: [
-        LineChartBarData(
-          isCurved: true,
-          color: Colors.red,
-          barWidth: 3,
-          isStrokeCapRound: true,
-          dotData: FlDotData(show: true),
-          belowBarData: BarAreaData(
-            show: true,
-            color: Colors.red.withOpacity(0.3),
-          ),
-          spots: _generateDayTemperatureSpots(day),
-        ),
-      ],
     ),
   ),
 ),
-                                ],
+ ],
                               ),
                             );
                           }).toList(),
