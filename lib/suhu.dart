@@ -269,7 +269,7 @@ class _SuhuPageState extends State<SuhuPage> {
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         double newTemperature =
-            (double.tryParse(data['data'][0]['suhu'].toString()) ?? 0.0) + 5;
+            (double.tryParse(data['data'][0]['suhu'].toString()) ?? 0.0) + 0;
         String newHumidity = data['data'][0]['kelembaban'];
 
         setState(() {
@@ -284,7 +284,7 @@ class _SuhuPageState extends State<SuhuPage> {
               'DANGER: High Temperature Alert',
               'Server temperature is critically high at ${_temperature.toStringAsFixed(1)}°C',
               'danger');
-        } else if (_temperature > 22) {
+        } else if (_temperature > 27) {
           await _showBackgroundNotification(
               flutterLocalNotificationsPlugin,
               'WARNING: High Temperature Alert',
@@ -303,7 +303,7 @@ class _SuhuPageState extends State<SuhuPage> {
     }
   }
 
-  Future<void> _saveTemperatureToFirebase() async {
+ Future<void> _saveTemperatureToFirebase() async {
     if (_isSaving || _temperature == 0.0) {
       print("⚠ Data tidak valid atau sedang dalam proses penyimpanan.");
       return;
@@ -315,6 +315,7 @@ class _SuhuPageState extends State<SuhuPage> {
       final int roundedMinute = (now.minute ~/ 2) * 2;
       final timeKey =
           "${now.hour.toString().padLeft(2, '0')}:${roundedMinute.toString().padLeft(2, '0')}";
+      final dateKey = "${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}";
 
       final timestamp = now.toUtc().millisecondsSinceEpoch;
 
@@ -325,8 +326,13 @@ class _SuhuPageState extends State<SuhuPage> {
           .once();
 
       if (snapshot.snapshot.exists) {
-        print("⚠ Data dengan waktu ini sudah ada.");
-        return;
+        final data = Map<String, dynamic>.from(snapshot.snapshot.value as Map);
+        bool existsForSameDate = data.values.any((entry) => entry['date'] == dateKey);
+
+        if (existsForSameDate) {
+          print("⚠ Data dengan waktu dan tanggal ini sudah ada.");
+          return;
+        }
       }
 
       final newDataRef = _database.child('temperature_logs').push();
@@ -334,18 +340,19 @@ class _SuhuPageState extends State<SuhuPage> {
         'temperature': _temperature,
         'humidity': _humidity,
         'day': _day,
-        'date': _date,
+        'date': dateKey,
         'time': timeKey,
         'timestamp': timestamp,
       });
 
-      print("✅ Data  suhu berhasil disimpan: $_temperature°C");
+      print("✅ Data suhu berhasil disimpan: $_temperature°C");
     } catch (e) {
       print("❌ Gagal menyimpan ke Firebase: $e");
     } finally {
       _isSaving = false;
     }
   }
+
 
   // New method for fetching temperature history
   Future<void> _fetchTemperatureHistory() async {
