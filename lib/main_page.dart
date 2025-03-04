@@ -4,7 +4,8 @@ import 'package:magangnih/laporan.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:magangnih/suhu.dart';
-import 'login_page.dart';  // Import LoginPage
+import 'login_page.dart';
+import 'package:magangnih/monitoring.dart';
 
 class MainPage extends StatefulWidget {
   const MainPage({super.key});
@@ -122,6 +123,12 @@ class _MainPageState extends State<MainPage> {
               ),
               buildMenuButton(
                 context,
+                icon: Icons.monitor,
+                label: "Nagvis",
+                page: MonitoringPage(),
+              ),
+              buildMenuButton(
+                context,
                 icon: Icons.videocam,
                 label: "CCTV",
                 page: Cctv(),
@@ -139,19 +146,22 @@ class _MainPageState extends State<MainPage> {
                   width: 300,
                   height: 60,
                   child: ElevatedButton.icon(
-                    onPressed: _logout,  // Logout action
+                    onPressed: _logout, // Logout action
                     icon: Icon(Icons.logout, size: 28),
                     label: Text(
                       "Logout",
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      style:
+                          TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                     ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.white,
                       foregroundColor: const Color.fromARGB(255, 0, 21, 255),
-                      padding: EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+                      padding:
+                          EdgeInsets.symmetric(horizontal: 20, vertical: 15),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(15),
-                        side: BorderSide(color: Color.fromARGB(255, 0, 21, 255)),
+                        side:
+                            BorderSide(color: Color.fromARGB(255, 0, 21, 255)),
                       ),
                       elevation: 5,
                     ),
