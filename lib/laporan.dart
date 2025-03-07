@@ -706,7 +706,7 @@ List<FlSpot> _generateDayTemperatureSpots(String day) {
                         ),
                       ),
                     ),
-               
+                    const SizedBox(height: 10),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
@@ -772,7 +772,7 @@ List<FlSpot> _generateDayTemperatureSpots(String day) {
 
             // Daily Charts Section
             Expanded(
-              flex: 3,
+              flex:5 ,
               child: Container(
                 padding: const EdgeInsets.all(12.0),
                 decoration: BoxDecoration(
@@ -816,6 +816,7 @@ List<FlSpot> _generateDayTemperatureSpots(String day) {
                                 ),
                               );
                             }
+
                             return Container(
                               margin: const EdgeInsets.only(bottom: 20),
                               height: 220,
