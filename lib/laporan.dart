@@ -706,7 +706,7 @@ List<FlSpot> _generateDayTemperatureSpots(String day) {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 10),
+               
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
@@ -772,7 +772,7 @@ List<FlSpot> _generateDayTemperatureSpots(String day) {
 
             // Daily Charts Section
             Expanded(
-              flex: 5,
+              flex: 3,
               child: Container(
                 padding: const EdgeInsets.all(12.0),
                 decoration: BoxDecoration(
@@ -816,157 +816,156 @@ List<FlSpot> _generateDayTemperatureSpots(String day) {
                                 ),
                               );
                             }
-
                             return Container(
-  margin: const EdgeInsets.only(bottom: 20),
-  height: 220,
-  decoration: BoxDecoration(
-    color: Colors.white,
-    borderRadius: BorderRadius.circular(8),
-    border: Border.all(color: Colors.grey[200]!),
-  ),
-  child: Column(
-    children: [
-      Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        child: Text(
-          day,
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-            color: Colors.blueAccent,
-          ),
-        ),
-      ),// Replace the LineChart widget in your code with this implementation
-Expanded(
-  child: Padding(
-    padding: const EdgeInsets.symmetric(horizontal: 12.0),
-    child: LineChart(
-      LineChartData(
-        clipData: FlClipData.all(), // Add clipping to prevent chart elements from extending outside boundaries
-        gridData: FlGridData(
-          show: true,
-          drawHorizontalLine: true,
-          drawVerticalLine: true,
-          horizontalInterval: 1,
-          verticalInterval: 1,
-          checkToShowHorizontalLine: (value) => value % 1 == 0,
-          checkToShowVerticalLine: (value) => value % 2 == 0,
-        ),
-        titlesData: FlTitlesData(
-          bottomTitles: AxisTitles(
-            sideTitles: SideTitles(
-              showTitles: true,
-              getTitlesWidget: (value, meta) {
-                if (value % 2 == 0 && value >= 0 && value <= 24) {
-                  return Padding(
-                    padding: const EdgeInsets.only(top: 5.0),
-                    child: Text(
-                      '${value.toInt()}:00',
-                      style: const TextStyle(
-                        fontSize: 10,
-                        color: Colors.black54,
-                      ),
-                    ),
-                  );
-                }
-                return const SizedBox.shrink();
-              },
-              reservedSize: 28,
-              interval: 2,
-            ),
-          ),
-          leftTitles: AxisTitles(
-            sideTitles: SideTitles(
-              showTitles: true,
-              getTitlesWidget: (value, meta) {
-                return Padding(
-                  padding: const EdgeInsets.only(right: 5.0),
-                  child: Text(
-                    '${value.toInt()}°',
-                    style: const TextStyle(
-                      fontSize: 10,
-                      color: Colors.black54,
-                    ),
-                    textAlign: TextAlign.right,
-                  ),
-                );
-              },
-              reservedSize: 35,
-              interval: 5,
-            ),
-          ),
-          topTitles: AxisTitles(
-            sideTitles: SideTitles(showTitles: false),
-          ),
-          rightTitles: AxisTitles(
-            sideTitles: SideTitles(showTitles: false),
-          ),
-        ),
-        borderData: FlBorderData(
-          show: true,
-          border: Border.all(
-            color: Colors.grey.shade300,
-            width: 1,
-          ),
-        ),
-        // Ensure minX is actually the minimum found in the data, not a calculated window
-        // Modify this part in your _getDayDataRange method or use a fixed minX that's within your data
-        minX: _getDayDataRange(day).$1 > 0 ? _getDayDataRange(day).$1 : 0, // Add safety check
-        maxX: _getDayDataRange(day).$2,
-        minY: _getMinTemperature(day) - 1,
-        maxY: _getMaxTemperature(day) + 1,
-        lineTouchData: LineTouchData(
-          enabled: true,
-          touchTooltipData: LineTouchTooltipData(
-            tooltipBgColor: Colors.blueAccent.withOpacity(0.8),
-            getTooltipItems: (List<LineBarSpot> touchedSpots) {
-              return touchedSpots.map((LineBarSpot touchedSpot) {
-                int hour = touchedSpot.x.toInt();
-                int minute = ((touchedSpot.x - hour) * 60).round();
-                String timeStr = '$hour:${minute.toString().padLeft(2, '0')}';
-                
-                return LineTooltipItem(
-                  '$timeStr\n${touchedSpot.y.toStringAsFixed(1)}°C',
-                  const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                );
-              }).toList();
-            },
-          ),
-        ),
-        lineBarsData: [
-          LineChartBarData(
-            isCurved: true,
-            color: Colors.red,
-            barWidth: 2.5,
-            isStrokeCapRound: true,
-            preventCurveOverShooting: true, // Prevent curves from extending beyond data points
-            dotData: FlDotData(
-              show: true,
-              getDotPainter: (spot, percent, barData, index) {
-                return FlDotCirclePainter(
-                  radius: 3,
-                  color: Colors.red,
-                  strokeWidth: 1,
-                  strokeColor: Colors.white,
-                );
-              },
-            ),
-            belowBarData: BarAreaData(
-              show: true,
-              color: Colors.red.withOpacity(0.2),
-              cutOffY: _getMinTemperature(day) - 1,
-              applyCutOffY: true,
-            ),
-            spots: _filterValidSpots(_generateDayTemperatureSpots(day)), // Added filtering function
-          ),
-        ],
-      ),
-    ),
-  ),
-),
- ],
+                              margin: const EdgeInsets.only(bottom: 20),
+                              height: 220,
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: Colors.grey[200]!),
                               ),
+                              child: Column(
+                                children: [
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(vertical: 8),
+                                    child: Text(
+                                      day,
+                                      style: const TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.blueAccent,
+                                      ),
+                                    ),
+                                  ),// Replace the LineChart widget in your code with this implementation
+                            Expanded(
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 12.0),
+                                child: LineChart(
+                                  LineChartData(
+                                    clipData: FlClipData.all(), // Add clipping to prevent chart elements from extending outside boundaries
+                                    gridData: FlGridData(
+                                      show: true,
+                                      drawHorizontalLine: true,
+                                      drawVerticalLine: true,
+                                      horizontalInterval: 1,
+                                      verticalInterval: 1,
+                                      checkToShowHorizontalLine: (value) => value % 1 == 0,
+                                      checkToShowVerticalLine: (value) => value % 2 == 0,
+                                    ),
+                                    titlesData: FlTitlesData(
+                                      bottomTitles: AxisTitles(
+                                        sideTitles: SideTitles(
+                                          showTitles: true,
+                                          getTitlesWidget: (value, meta) {
+                                            if (value % 2 == 0 && value >= 0 && value <= 24) {
+                                              return Padding(
+                                                padding: const EdgeInsets.only(top: 5.0),
+                                                child: Text(
+                                                  '${value.toInt()}:00',
+                                                  style: const TextStyle(
+                                                    fontSize: 10,
+                                                    color: Colors.black54,
+                                                  ),
+                                                ),
+                                              );
+                                            }
+                                            return const SizedBox.shrink();
+                                          },
+                                          reservedSize: 28,
+                                          interval: 2,
+                                        ),
+                                      ),
+                                      leftTitles: AxisTitles(
+                                        sideTitles: SideTitles(
+                                          showTitles: true,
+                                          getTitlesWidget: (value, meta) {
+                                            return Padding(
+                                              padding: const EdgeInsets.only(right: 5.0),
+                                              child: Text(
+                                                '${value.toInt()}°',
+                                                style: const TextStyle(
+                                                  fontSize: 10,
+                                                  color: Colors.black54,
+                                                ),
+                                                textAlign: TextAlign.right,
+                                              ),
+                                            );
+                                          },
+                                          reservedSize: 35,
+                                          interval: 5,
+                                        ),
+                                      ),
+                                      topTitles: AxisTitles(
+                                        sideTitles: SideTitles(showTitles: false),
+                                      ),
+                                      rightTitles: AxisTitles(
+                                        sideTitles: SideTitles(showTitles: false),
+                                      ),
+                                    ),
+                                    borderData: FlBorderData(
+                                      show: true,
+                                      border: Border.all(
+                                        color: Colors.grey.shade300,
+                                        width: 1,
+                                      ),
+                                    ),
+                                    // Ensure minX is actually the minimum found in the data, not a calculated window
+                                    // Modify this part in your _getDayDataRange method or use a fixed minX that's within your data
+                                    minX: _getDayDataRange(day).$1 > 0 ? _getDayDataRange(day).$1 : 0, // Add safety check
+                                    maxX: _getDayDataRange(day).$2,
+                                    minY: _getMinTemperature(day) - 1,
+                                    maxY: _getMaxTemperature(day) + 1,
+                                    lineTouchData: LineTouchData(
+                                      enabled: true,
+                                      touchTooltipData: LineTouchTooltipData(
+                                        tooltipBgColor: Colors.blueAccent.withOpacity(0.8),
+                                        getTooltipItems: (List<LineBarSpot> touchedSpots) {
+                                          return touchedSpots.map((LineBarSpot touchedSpot) {
+                                            int hour = touchedSpot.x.toInt();
+                                            int minute = ((touchedSpot.x - hour) * 60).round();
+                                            String timeStr = '$hour:${minute.toString().padLeft(2, '0')}';
+                                            
+                                            return LineTooltipItem(
+                                              '$timeStr\n${touchedSpot.y.toStringAsFixed(1)}°C',
+                                              const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                                            );
+                                          }).toList();
+                                        },
+                                      ),
+                                    ),
+                                    lineBarsData: [
+                                      LineChartBarData(
+                                        isCurved: true,
+                                        color: Colors.red,
+                                        barWidth: 2.5,
+                                        isStrokeCapRound: true,
+                                        preventCurveOverShooting: true, // Prevent curves from extending beyond data points
+                                        dotData: FlDotData(
+                                          show: true,
+                                          getDotPainter: (spot, percent, barData, index) {
+                                            return FlDotCirclePainter(
+                                              radius: 3,
+                                              color: Colors.red,
+                                              strokeWidth: 1,
+                                              strokeColor: Colors.white,
+                                            );
+                                          },
+                                        ),
+                                        belowBarData: BarAreaData(
+                                          show: true,
+                                          color: Colors.red.withOpacity(0.2),
+                                          cutOffY: _getMinTemperature(day) - 1,
+                                          applyCutOffY: true,
+                                        ),
+                                        spots: _filterValidSpots(_generateDayTemperatureSpots(day)), // Added filtering function
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                            ],
+                                                          ),
                             );
                           }).toList(),
                         ),
