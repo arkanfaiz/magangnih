@@ -25,7 +25,7 @@ class _LaporanPageState extends State<LaporanPage> {
       _timer; // Declare a Timer variable to handle the periodic data reload // Declare a Timer variable to handle the periodic data reload
 
   // Map to store data organized by days
-  Map<String, List<Map<dynamic, dynamic>>> _dailyData = {
+  final Map<String, List<Map<dynamic, dynamic>>> _dailyData = {
     'Senin': [],
     'Selasa': [],
     'Rabu': [],
@@ -301,7 +301,7 @@ Future<void> _loadTemperatureData() async {
         _keys = (snapshot.value as Map).keys.cast<String>().toList();
 
         // Urutan hari dimulai dari Jumat
-        List<String> daysOrder = ["Jumat", "Sabtu", "Minggu", "Senin", "Selasa", "Rabu", "Kamis"];
+        List<String> daysOrder = ["Kamis","Jumat", "Sabtu", "Minggu", "Senin", "Selasa", "Rabu", ];
 
         // Sorting berdasarkan hari dalam seminggu (descending), lalu tanggal, dan jam
         _temperatureData.sort((a, b) {
@@ -446,75 +446,10 @@ void _organizeDataByDay() {
 
 
   void _startAutoReload() {
-  _timer = Timer.periodic(Duration(seconds: 60), (Timer t) {
+  _timer = Timer.periodic(Duration(seconds: 30), (Timer t) {
     _loadTemperatureData(); // Call _loadTemperatureData every 2 seconds for smoother scrolling
   });
 }
-
-  void _confirmDeleteItem(int index) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("Konfirmasi Hapus"),
-        content: const Text("Apakah Anda yakin ingin menghapus data ini?"),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child:
-                const Text("Tidak", style: TextStyle(color: Colors.blueAccent)),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              _deleteItem(index);
-            },
-            child: const Text("Ya", style: TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _deleteItem(int index) async {
-    if (index >= 0 && index < _keys.length) {
-      String keyToDelete = _keys[index]; // Simpan key yang akan dihapus
-      await _database.child('temperature_logs').child(keyToDelete).remove();
-
-      // Hapus item dari daftar lokal untuk menghindari flickering di UI
-      setState(() {
-        _keys.removeAt(index);
-        _temperatureData.removeAt(index);
-        _organizeDataByDay(); // Re-organize data after deletion
-      });
-
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('Data berhasil dihapus')));
-    }
-  }
-
-  void _confirmDeleteAll() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("Konfirmasi Hapus Semua"),
-        content: const Text("Apakah Anda yakin ingin menghapus semua data?"),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child:
-                const Text("Tidak", style: TextStyle(color: Colors.blueAccent)),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              _deleteAll();
-            },
-            child: const Text("Ya", style: TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
-    );
-  }
 
   void _deleteAll() async {
     await _database.child('temperature_logs').remove();
@@ -709,7 +644,7 @@ List<FlSpot> _generateDayTemperatureSpots(String day) {
                         scrollDirection: Axis.horizontal,
                         child: DataTable(
                           columnSpacing: 20,
-                          headingRowColor: MaterialStateProperty.resolveWith(
+                          headingRowColor: WidgetStateProperty.resolveWith(
                               (states) => Colors.blueAccent),
                           columns: const [
                             DataColumn(
@@ -742,15 +677,10 @@ List<FlSpot> _generateDayTemperatureSpots(String day) {
                                     style: TextStyle(
                                         fontWeight: FontWeight.bold,
                                         color: Colors.white))),
-                            DataColumn(
-                                label: Text('Aksi',
-                                    style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.white))),
+                         
                           ],
                           rows: List.generate(_itemsPerPage, (index) {
                             Map data = currentPageData[index];
-                            String key = currentKeys[index];
                             return DataRow(cells: [
                               DataCell(Text('${startIndex + index + 1}',
                                   style: const TextStyle(fontSize: 16))),
@@ -770,16 +700,7 @@ List<FlSpot> _generateDayTemperatureSpots(String day) {
                                   style: const TextStyle(fontSize: 16))),
                               DataCell(Text('${data['time']}',
                                   style: const TextStyle(fontSize: 16))),
-                              DataCell(
-                                key.isNotEmpty
-                                    ? IconButton(
-                                        icon: const Icon(Icons.delete,
-                                            color: Colors.red),
-                                        onPressed: () => _confirmDeleteItem(
-                                            startIndex + index),
-                                      )
-                                    : Container(),
-                              ),
+                       
                             ]);
                           }),
                         ),
@@ -841,19 +762,7 @@ List<FlSpot> _generateDayTemperatureSpots(String day) {
                       ],
                     ),
                     const SizedBox(height: 10),
-                    ElevatedButton.icon(
-                      onPressed: _confirmDeleteAll,
-                      icon: const Icon(Icons.delete_forever),
-                      label: const Text('Hapus Semua Data'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.redAccent,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 20, vertical: 12),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(50)),
-                      ),
-                    ),
+
                   ],
                 ),
               ),
@@ -1018,7 +927,7 @@ Expanded(
                 String timeStr = '$hour:${minute.toString().padLeft(2, '0')}';
                 
                 return LineTooltipItem(
-                  '${timeStr}\n${touchedSpot.y.toStringAsFixed(1)}°C',
+                  '$timeStr\n${touchedSpot.y.toStringAsFixed(1)}°C',
                   const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                 );
               }).toList();

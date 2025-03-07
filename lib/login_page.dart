@@ -3,6 +3,8 @@ import 'register_page.dart';
 import 'main_page.dart'; // Import main_page.dart
 
 class LoginPage extends StatelessWidget {
+  const LoginPage({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -18,6 +20,8 @@ class LoginPage extends StatelessWidget {
 }
 
 class LoginForm extends StatefulWidget {
+  const LoginForm({super.key});
+
   @override
   _LoginFormState createState() => _LoginFormState();
 }

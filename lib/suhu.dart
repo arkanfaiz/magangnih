@@ -312,7 +312,7 @@ class _SuhuPageState extends State<SuhuPage> {
     _isSaving = true;
     try {
       final now = DateTime.now();
-      final int roundedMinute = (now.minute ~/ 2) * 2;
+      final int roundedMinute = (now.minute ~/ 1) * 1;
       final timeKey =
           "${now.hour.toString().padLeft(2, '0')}:${roundedMinute.toString().padLeft(2, '0')}";
       final dateKey = "${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}";
