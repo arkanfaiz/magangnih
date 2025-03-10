@@ -159,7 +159,7 @@ class _SuhuPageState extends State<SuhuPage> {
         .limitToLast(1)
         .onValue;
 
-    _firebaseSyncTimer = Timer.periodic(Duration(minutes: 1), (Timer t) {
+    _firebaseSyncTimer = Timer.periodic(Duration(seconds: 30), (Timer t) {
       _updateTemperature();
       _saveTemperatureToFirebase();
     });
@@ -171,7 +171,7 @@ class _SuhuPageState extends State<SuhuPage> {
     });
 
     // Added to refresh history periodically
-    Timer.periodic(Duration(minutes: 1), (timer) {
+    Timer.periodic(Duration(seconds: 30), (timer) {
       _fetchTemperatureHistory();
       _updateDateTime();
     });

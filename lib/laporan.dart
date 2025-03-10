@@ -112,9 +112,12 @@ Future<void> _generateWeeklyPDF() async {
           child: pw.Column(
             mainAxisAlignment: pw.MainAxisAlignment.center,
             children: [
-              pw.Text('Laporan Mingguan Suhu dan Kelembaban',
-                  style: pw.TextStyle(
-                      fontSize: 24, fontWeight: pw.FontWeight.bold)),
+              pw.Center(
+              child: pw.Text(
+                'Laporan Mingguan Suhu dan Kelembapan Server AOCC',
+                style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold),
+              ),
+            ),
               pw.SizedBox(height: 20),
               pw.Text(
                   'Periode: ${DateTime.now().subtract(const Duration(days: 7)).toString().substring(0, 10)} - ${DateTime.now().toString().substring(0, 10)}',
@@ -673,7 +676,7 @@ List<FlSpot> _generateDayTemperatureSpots(String day) {
                                         fontWeight: FontWeight.bold,
                                         color: Colors.white))),
                             DataColumn(
-                                label: Text('Jam',
+                                label: Text('waktu',
                                     style: TextStyle(
                                         fontWeight: FontWeight.bold,
                                         color: Colors.white))),
@@ -719,7 +722,7 @@ List<FlSpot> _generateDayTemperatureSpots(String day) {
                                 }
                               : null,
                           icon: const Icon(Icons.arrow_back, size: 18),
-                          label: const Text('Prev'),
+                          label: const Text(''),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.blueAccent,
                             foregroundColor: Colors.white,
@@ -729,17 +732,63 @@ List<FlSpot> _generateDayTemperatureSpots(String day) {
                                 horizontal: 20, vertical: 12),
                           ),
                         ),
-                        if (totalPages > 1)
+                       if (totalPages > 1)
                           Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 12),
-                            child: Text(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            // Previous text with more spacing and better styling
+                            Text(
                               "${_currentPage + 1} / $totalPages",
                               style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.blueAccent),
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.blueAccent,
+                              ),
                             ),
-                          ),
+                            const SizedBox(width: 16),  // Increased spacing for better layout
+
+                            // Dropdown button for page selection with better style and design
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10),
+                              decoration: BoxDecoration(
+                                color: Colors.blueAccent.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(30),
+                                border: Border.all(color: Colors.blueAccent, width: 1.5),
+                              ),
+                              child: DropdownButton<int>(
+                                value: _currentPage + 1, // Show the current page number
+                                onChanged: (int? newPage) {
+                                  if (newPage != null) {
+                                    setState(() {
+                                      _currentPage = newPage - 1;
+                                    });
+                                  }
+                                },
+                                items: List.generate(
+                                  totalPages,
+                                  (index) => DropdownMenuItem<int>(
+                                    value: index + 1,
+                                    child: Text(
+                                      '${index + 1}',
+                                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                                    ),
+                                  ),
+                                ),
+                                icon: const Icon(Icons.arrow_drop_down, color: Colors.blueAccent),
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  color: Colors.blueAccent,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                underline: SizedBox(),  // Remove underline to keep it clean
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
                         ElevatedButton.icon(
                           onPressed: endIndex < _temperatureData.length
                               ? () {
@@ -749,7 +798,7 @@ List<FlSpot> _generateDayTemperatureSpots(String day) {
                                 }
                               : null,
                           icon: const Icon(Icons.arrow_forward, size: 18),
-                          label: const Text('Next'),
+                          label: const Text(''),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.blueAccent,
                             foregroundColor: Colors.white,

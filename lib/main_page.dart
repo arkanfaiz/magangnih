@@ -52,28 +52,28 @@ class _MainPageState extends State<MainPage> {
   }
 
   // Fungsi untuk menampilkan notifikasi
-  Future<void> _showNotification() async {
-    const AndroidNotificationDetails androidDetails =
-        AndroidNotificationDetails(
-      'channel_id',
-      'Network Connectivity',
-      channelDescription: 'Notifikasi koneksi jaringan',
-      importance: Importance.high,
-      priority: Priority.high,
-      ticker: 'ticker',
-    );
+  // Future<void> _showNotification() async {
+  //   const AndroidNotificationDetails androidDetails =
+  //       AndroidNotificationDetails(
+  //     'channel_id',
+  //     'Network Connectivity',
+  //     channelDescription: 'Notifikasi koneksi jaringan',
+  //     importance: Importance.high,
+  //     priority: Priority.high,
+  //     ticker: 'ticker',
+  //   );
 
-    const NotificationDetails platformDetails = NotificationDetails(
-      android: androidDetails,
-    );
+  //   const NotificationDetails platformDetails = NotificationDetails(
+  //     android: androidDetails,
+  //   );
 
-    await flutterLocalNotificationsPlugin.show(
-      0, // ID notifikasi
-      'No Network Connection',
-      'Your device is not connected to the internet.',
-      platformDetails,
-    );
-  }
+  //   await flutterLocalNotificationsPlugin.show(
+  //     0, // ID notifikasi
+  //     'No Network Connection',
+  //     'Your device is not connected to the internet.',
+  //     platformDetails,
+  //   );
+  // }
 
   // Fungsi untuk logout
   void _logout() {
@@ -110,11 +110,11 @@ class _MainPageState extends State<MainPage> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              ElevatedButton(
-                onPressed:
-                    _showNotification, // Memanggil fungsi untuk menampilkan notifikasi
-                child: const Text('Test Notification'),
-              ),
+              // ElevatedButton(
+              //   onPressed:
+              //       _showNotification, // Memanggil fungsi untuk menampilkan notifikasi
+              //   child: const Text('Test Notification'),
+              // ),
               buildMenuButton(
                 context,
                 icon: Icons.thermostat,
@@ -127,12 +127,12 @@ class _MainPageState extends State<MainPage> {
                 label: "Nagvis",
                 page: MonitoringPage(),
               ),
-              buildMenuButton(
-                context,
-                icon: Icons.videocam,
-                label: "CCTV",
-                page: Cctv(),
-              ),
+              // buildMenuButton(
+              //   context,
+              //   icon: Icons.videocam,
+              //   label: "CCTV",
+              //   page: Cctv(),
+              // ),
               buildMenuButton(
                 context,
                 icon: Icons.article,
